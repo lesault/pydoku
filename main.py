@@ -8,6 +8,7 @@ window_size = (600, 600)
 
 # Create the window
 screen = pygame.display.set_mode(window_size)
+pygame.display.set_caption("Pydoku")
 
 # Set the background color
 bg_color = (255, 255, 255)
