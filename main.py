@@ -63,24 +63,6 @@ button_values = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 button_x = 50
 button_y = 9 * (cell_size + margin) + 50
 
-# Set the initial grid
-grid = [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-]
-
-
-def update_cell(x, y, value):
-    """Updates the value of the cell at (x, y) with the given value."""
-    grid[x][y] = value
-
 
 class Cell:
     def __init__(
@@ -90,7 +72,9 @@ class Cell:
         width=cell_size,
         height=cell_size,
         kind=None,
-        value=None,
+        a_value=None,  # Answer value
+        c_value=None,  # Corner value
+        m_value=None,  # Middle value
         selected=False,
     ):
         self.r = r
@@ -101,7 +85,9 @@ class Cell:
         self.height = height
         self.kind = kind
         # self.value = value
-        self.value = 8
+        self.a_value = a_value
+        self.c_value = c_value
+        self.m_value = m_value
         self.selected = False
 
     def draw(self, surface):
@@ -113,29 +99,108 @@ class Cell:
             line_width,
         )
 
-        # Draw the number if necessary
-        if self.value != None:
+        # Draw the number - answer value takes priority over corner/middle
+        if self.a_value != None:
             # Render the text
-            text = font.render(str(self.value), True, number_color)
+            text = font.render(str(self.a_value), True, number_color)
             # Calculate the position of the text
             text_x = self.x + (self.width - text.get_width()) / 2
             text_y = self.y + (self.height - text.get_height()) / 2
             # Draw the text
             screen.blit(text, (text_x, text_y))
 
+        else:
+            if self.c_value != None:
+                # Render the text
+                text = font.render(str(self.c_value), True, number_color)
+                # Calculate the position of the text
+                text_x = self.x + (self.width - text.get_width()) / 2
+                text_y = self.y + (self.height - text.get_height()) / 2
+                # Draw the text
+                screen.blit(text, (text_x, text_y))
+            if self.m_value != None:
+                # Render the text
+                text = font.render(str(self.m_value), True, number_color)
+                # Calculate the position of the text
+                text_x = self.x + (self.width - text.get_width()) / 2
+                text_y = self.y + (self.height - text.get_height()) / 2
+                # Draw the text
+                screen.blit(text, (text_x, text_y))
+
+
+class Button:
+    def __init__(
+        self, x, y, width=cell_size, height=cell_size, kind="Number", label="X"
+    ):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.kind = kind
+        self.label = label
+        self.selected = False
+        self.button = pygame.Rect(self.x, self.y, self.width, self.height)
+
+    def draw(self, surface):
+        if self.kind == "Number":
+            if self.selected:
+                pygame.draw.rect(surface, selected_button_color, self.button)
+                text_color = selected_button_text_color
+            else:
+                pygame.draw.rect(surface, button_color, self.button)
+                text_color = button_text_color
+
+            # Draw the button value text
+            self.text_surface = font.render(str(self.label), True, text_color)
+            self.text_rect = self.text_surface.get_rect(
+                center=self.button.center
+            )
+            screen.blit(self.text_surface, self.text_rect)
+
 
 # Create the buttons
 buttons = []
 for value in button_values:
-    # Create the button
-    button = pygame.Rect(button_x, button_y, button_size[0], button_size[1])
-    buttons.append(button)
-
+    buttons.append(
+        Button(
+            x=button_x,
+            y=button_y,
+            width=cell_size,
+            height=cell_size,
+            kind="Number",
+            label=value,
+        )
+    )
     # Update the x coordinate for the next button
     button_x += button_size[0] + 10
 
-    # Set the selected button
-    selected_button = None
+# # Create the buttons
+# buttons = []
+# for value in button_values:
+#     # Create the button
+#     button = pygame.Rect(button_x, button_y, button_size[0], button_size[1])
+#     buttons.append(button)
+
+#     # Update the x coordinate for the next button
+#     button_x += button_size[0] + 10
+
+#     # Set the selected button
+#     selected_button = None
+
+# button_x = 50
+# button_y += cell_size + margin
+
+# mode_button_values = ["A", "C", "M"]
+# mode_buttons = []
+# for value in mode_button_values:
+#     button = pygame.Rect(button_x, button_y, button_size[0], button_size[1])
+#     mode_buttons.append(button)
+
+# # Update the x coordinate for the next button
+# button_x += button_size[0] + 10
+
+# # Set the selected button
+# selected_button = None
 
 # build an array of cells
 full_grid = [
@@ -165,10 +230,19 @@ while running:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             # Check if a button was clicked
             for button in buttons:
-                if button.collidepoint(event.pos):
+                if button.button.collidepoint(event.pos):
                     # Set the selected button
-                    selected_button = button
-                    value = str(button_values[buttons.index(button)])
+                    # selected_button = button
+                    if button.selected == True:
+                        button.selected = False
+                        value = None
+                    else:
+                        for other_button in buttons:
+                            other_button.selected = (
+                                False  # Deselect all buttons
+                            )
+                        button.selected = True  # Select this button
+                        value = button.label
                     break
             # Get the mouse position
             mouse_x, mouse_y = event.pos
@@ -178,8 +252,8 @@ while running:
             if cell_x < 10 and cell_y < 10:
                 print(cell_x, cell_y)
                 # Update the cell with a value
-                update_cell(cell_x, cell_y, 5)
-                full_grid[cell_x][cell_y].value = value
+                # update_cell(cell_x, cell_y, 5)
+                full_grid[cell_x][cell_y].a_value = value
 
     # Clear the screen
     screen.fill((0, 0, 0))
@@ -188,98 +262,30 @@ while running:
     screen.fill(bg_color)
 
     # Draw the grid
-    # for row in range(9):
-    #     for col in range(9):
     for col in range(1, 10):
         for row in range(1, 10):
             full_grid[row - 1][col - 1].draw(screen)
 
-    # Draw the grid
-    # for x in range(9):
-    #     for y in range(9):
-    #         # Calculate the top left position of the cell
-    #         top_left_x = x * (cell_size + margin) + margin
-    #         top_left_y = y * (cell_size + margin) + margin
-
-    #         # Draw the cell outline
-    #         pygame.draw.rect(
-    #             screen,
-    #             grid_color,
-    #             (top_left_x, top_left_y, cell_size, cell_size),
-    #             line_width,
-    #         )
-
-    #         # Get the value of the cell
-    #         value = grid[x][y]
-
-    #         # Draw the center marks if necessary
-    #         if value == "c":
-    #             for i in range(1, 10):
-    #                 # Calculate the position of the mark
-    #                 mark_x = top_left_x + cell_size / 2
-    #                 mark_y = top_left_y + cell_size / 2
-    #                 # Draw the mark
-    #                 pygame.draw.circle(
-    #                     screen,
-    #                     center_mark_color,
-    #                     (int(mark_x), int(mark_y)),
-    #                     center_mark_size,
-    #                 )
-    #                 # Rotate the mark
-    #                 mark_x, mark_y = rotate(
-    #                     mark_x,
-    #                     mark_y,
-    #                     top_left_x + cell_size / 2,
-    #                     top_left_y + cell_size / 2,
-    #                     10,
-    #                 )
-
-    #         # Draw the corner marks if necessary
-    #         elif value == "b":
-    #             for i in range(1, 10):
-    #                 # Calculate the position of the mark
-    #                 mark_x, top_left_y + cell_size / 2
-    #                 # Draw the mark
-    #                 pygame.draw.circle(
-    #                     screen,
-    #                     corner_mark_color,
-    #                     (int(mark_x), int(mark_y)),
-    #                     corner_mark_size,
-    #                 )
-    #                 # Rotate the mark
-    #                 mark_x, mark_y = rotate(
-    #                     mark_x,
-    #                     mark_y,
-    #                     top_left_x + cell_size / 2,
-    #                     top_left_y + cell_size / 2,
-    #                     45,
-    #                 )
-
-    #         # Draw the number if necessary
-    #         elif value != 0:
-    #             # Render the text
-    #             text = font.render(str(value), True, number_color)
-    #             # Calculate the position of the text
-    #             text_x = top_left_x + (cell_size - text.get_width()) / 2
-    #             text_y = top_left_y + (cell_size - text.get_height()) / 2
-    #             # Draw the text
-    #             screen.blit(text, (text_x, text_y))
-
     # Draw the buttons
     for button in buttons:
-        if button == selected_button:
-            pygame.draw.rect(screen, selected_button_color, button)
-            text_color = selected_button_text_color
-        else:
-            pygame.draw.rect(screen, button_color, button)
-            text_color = button_text_color
+        button.draw(screen)
 
-        # Draw the button value text
-        text_surface = font.render(
-            str(button_values[buttons.index(button)]), True, text_color
-        )
-        text_rect = text_surface.get_rect(center=button.center)
-        screen.blit(text_surface, text_rect)
+    # for button in mode_buttons:
+    #     if button == selected_button:
+    #         pygame.draw.rect(screen, selected_button_color, button)
+    #         text_color = selected_button_text_color
+    #     else:
+    #         pygame.draw.rect(screen, button_color, button)
+    #         text_color = button_text_color
+
+    #     # Draw the button value text
+    #     text_surface = font.render(
+    #         str(mode_button_values[mode_buttons.index(button)]),
+    #         True,
+    #         text_color,
+    #     )
+    #     text_rect = text_surface.get_rect(center=button.center)
+    #     screen.blit(text_surface, text_rect)
 
     # Draw the box borders
     tic_tac_endpoints = [
