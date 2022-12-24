@@ -130,10 +130,10 @@ class Cell:
                 screen.blit(text, (text_x, text_y))
 
     def check_valid(self):
-        self.box_c = (self.c) // 3
-        self.box_r = (self.r) // 3
+        self.box_c = (self.c - 1) // 3
+        self.box_r = (self.r - 1) // 3
         box_values = {0: [1, 2, 3], 1: [4, 5, 6], 2: [7, 8, 9]}
-
+        print(f"Box C: {self.box_c}, Box R: {self.box_r}")
         # Find the cells that make up the box, row, and col
         self.full_box = []
         self.full_row = []
