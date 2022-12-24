@@ -16,8 +16,11 @@ bg_color = (255, 255, 255)
 # Set the cell size
 cell_size = 50
 
-# Set the font for the numbers
+# Set the font for the answer numbers
 font = pygame.font.Font(None, 36)
+
+# Set the font for corner and middle numbers
+small_font = pygame.font.Font(None, 12)
 
 # Set the margin between cells
 margin = 0
@@ -65,6 +68,23 @@ button_x = 50
 button_y = 9 * (cell_size + margin) + 50
 
 
+def list_to_multi_line_string(numbers):
+    """Convert a list of numbers to a multi-line string with 3 characters per row"""
+    # Pad the list with empty strings as needed
+    numbers += [""] * (9 - len(numbers))
+
+    # Initialize the rows list using a list comprehension
+    rows = [
+        "{} {} {}".format(*numbers[i : i + 3])
+        for i in range(0, len(numbers), 3)
+    ]
+
+    # Join the rows with newline characters to create the final string
+    output_string = "\n".join(rows)
+
+    return output_string
+
+
 class Cell:
     def __init__(
         self,
@@ -73,9 +93,9 @@ class Cell:
         width=cell_size,
         height=cell_size,
         kind=None,
-        a_value=None,  # Answer value
-        c_value=None,  # Corner value
-        m_value=None,  # Middle value
+        answer_value=None,  # Answer value
+        corner_value=None,  # Corner value
+        middle_value=None,  # Middle value
         selected=False,
     ):
         self.r = r
@@ -86,9 +106,9 @@ class Cell:
         self.height = height
         self.kind = kind
         # self.value = value
-        self.a_value = a_value
-        self.c_value = c_value
-        self.m_value = m_value
+        self.answer_value = answer_value
+        self.corner_value = corner_value
+        self.middle_value = middle_value
         self.selected = False
         self.number_color = number_color
 
@@ -102,38 +122,68 @@ class Cell:
         )
 
         # Draw the number - answer value takes priority over corner/middle
-        if self.a_value != None:
+        if self.answer_value != None:
             # Render the text
-            text = font.render(str(self.a_value), True, self.number_color)
+            text = font.render(str(self.answer_value), True, self.number_color)
             # Calculate the position of the text
             text_x = self.x + (self.width - text.get_width()) / 2
             text_y = self.y + (self.height - text.get_height()) / 2
             # Draw the text
             screen.blit(text, (text_x, text_y))
-
         else:
-            if self.c_value != None:
+            if self.corner_value != None:
+                # Split the corner value string on newline characters
+                lines = list_to_multi_line_string(self.corner_value).split(
+                    "\n"
+                )
+                # Calculate the vertical spacing between lines
+                line_spacing = small_font.get_linesize()
+                # Calculate the starting y position for the text
+                text_y = self.y + 2  # Shift the text slightly down
+                # Iterate over the lines
+                for line in lines:
+                    # Render the text
+                    text = small_font.render(line, True, number_color)
+                    # Calculate the position of the text
+                    text_x = self.x + 2  # Shift the text slightly to the right
+                    # Draw the text
+                    screen.blit(text, (text_x, text_y))
+                    # Increment the y position for the next line
+                    text_y += line_spacing
+            if self.middle_value != None:
                 # Render the text
-                text = font.render(str(self.c_value), True, number_color)
+                text = small_font.render(
+                    " ".join(map(str, self.middle_value)), True, number_color
+                )
                 # Calculate the position of the text
                 text_x = self.x + (self.width - text.get_width()) / 2
                 text_y = self.y + (self.height - text.get_height()) / 2
                 # Draw the text
                 screen.blit(text, (text_x, text_y))
-            if self.m_value != None:
-                # Render the text
-                text = font.render(str(self.m_value), True, number_color)
-                # Calculate the position of the text
-                text_x = self.x + (self.width - text.get_width()) / 2
-                text_y = self.y + (self.height - text.get_height()) / 2
-                # Draw the text
-                screen.blit(text, (text_x, text_y))
+        # else:
+        #     if self.corner_value != None:
+        #         # Render the text
+        #         text = font.render(str(self.corner_value), True, number_color)
+        #         # Calculate the position of the text
+        #         text_x = self.x + (self.width - text.get_width()) / 2
+        #         text_y = self.y + (self.height - text.get_height()) / 2
+        #         # Draw the text
+        #         screen.blit(text, (text_x, text_y))
+        #     if self.middle_value != None:
+        #         # Render the text
+        #         text = font.render(str(self.middle_value), True, number_color)
+        #         # Calculate the position of the text
+        #         text_x = self.x + (self.width - text.get_width()) / 2
+        #         text_y = self.y + (self.height - text.get_height()) / 2
+        #         # Draw the text
+        #         screen.blit(text, (text_x, text_y))
 
+    # TODO: Should check_valid check all 81 cells every time?
     def check_valid(self):
         self.box_c = (self.c - 1) // 3
         self.box_r = (self.r - 1) // 3
         box_values = {0: [1, 2, 3], 1: [4, 5, 6], 2: [7, 8, 9]}
-        print(f"Box C: {self.box_c}, Box R: {self.box_r}")
+        # print(f"Box C: {self.box_c}, Box R: {self.box_r}")
         # Find the cells that make up the box, row, and col
         self.full_box = []
         self.full_row = []
@@ -155,7 +205,7 @@ class Cell:
         # print(f"col: {self.full_col}")
         cells_to_check = set(self.full_box + self.full_row + self.full_col)
         for cell in cells_to_check:
-            if full_grid[cell[0]][cell[1]].a_value == self.a_value:
+            if full_grid[cell[0]][cell[1]].answer_value == self.answer_value:
                 self.number_color = (255, 0, 0)
                 return "ERROR! Cell clashes!"
             else:
@@ -191,6 +241,23 @@ class Button:
                 center=self.button.center
             )
             screen.blit(self.text_surface, self.text_rect)
+
+
+def list_to_multi_line_string(numbers):
+    """Convert a list of numbers to a multi-line string with 3 characters per row"""
+    # Pad the list with empty strings as needed
+    numbers += [""] * (9 - len(numbers))
+
+    # Initialize the rows list using a list comprehension
+    rows = [
+        "{} {} {}".format(*numbers[i : i + 3])
+        for i in range(0, len(numbers), 3)
+    ]
+
+    # Join the rows with newline characters to create the final string
+    output_string = "\n".join(rows)
+
+    return output_string
 
 
 # Create the buttons
@@ -288,7 +355,7 @@ while running:
                 print(cell_x + 1, cell_y + 1)
                 # Update the cell with a value
                 # update_cell(cell_x, cell_y, 5)
-                full_grid[cell_x][cell_y].a_value = value
+                full_grid[cell_x][cell_y].answer_value = value
                 print(full_grid[cell_x][cell_y].check_valid())
 
     # Clear the screen
