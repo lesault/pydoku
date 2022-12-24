@@ -90,6 +90,7 @@ class Cell:
         self.c_value = c_value
         self.m_value = m_value
         self.selected = False
+        self.number_color = number_color
 
     def draw(self, surface):
         # Draw the cell outline
@@ -103,7 +104,7 @@ class Cell:
         # Draw the number - answer value takes priority over corner/middle
         if self.a_value != None:
             # Render the text
-            text = font.render(str(self.a_value), True, number_color)
+            text = font.render(str(self.a_value), True, self.number_color)
             # Calculate the position of the text
             text_x = self.x + (self.width - text.get_width()) / 2
             text_y = self.y + (self.height - text.get_height()) / 2
@@ -127,6 +128,39 @@ class Cell:
                 text_y = self.y + (self.height - text.get_height()) / 2
                 # Draw the text
                 screen.blit(text, (text_x, text_y))
+
+    def check_valid(self):
+        self.box_c = (self.c) // 3
+        self.box_r = (self.r) // 3
+        box_values = {0: [1, 2, 3], 1: [4, 5, 6], 2: [7, 8, 9]}
+
+        # Find the cells that make up the box, row, and col
+        self.full_box = []
+        self.full_row = []
+        self.full_col = []
+        for col in box_values[self.box_c]:
+            for row in box_values[self.box_r]:
+                if (
+                    col != self.c or row != self.r
+                ):  # shouldnt this be an 'and'?
+                    self.full_box.append((col - 1, row - 1))
+        # print(f"box: {self.full_box}")
+        for col in range(1, 10):
+            if col != self.c:
+                self.full_row.append((col - 1, self.r - 1))
+        # print(f"row: {self.full_row}")
+        for row in range(1, 10):
+            if row != self.r:
+                self.full_col.append((self.c - 1, row - 1))
+        # print(f"col: {self.full_col}")
+        cells_to_check = set(self.full_box + self.full_row + self.full_col)
+        for cell in cells_to_check:
+            if full_grid[cell[0]][cell[1]].a_value == self.a_value:
+                self.number_color = (255, 0, 0)
+                return "ERROR! Cell clashes!"
+            else:
+                self.number_color = number_color
+        return None
 
 
 class Button:
@@ -251,10 +285,11 @@ while running:
             cell_x = mouse_x // (cell_size + margin)
             cell_y = mouse_y // (cell_size + margin)
             if cell_x < 10 and cell_y < 10:
-                print(cell_x, cell_y)
+                print(cell_x + 1, cell_y + 1)
                 # Update the cell with a value
                 # update_cell(cell_x, cell_y, 5)
                 full_grid[cell_x][cell_y].a_value = value
+                print(full_grid[cell_x][cell_y].check_valid())
 
     # Clear the screen
     screen.fill((0, 0, 0))
